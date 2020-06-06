@@ -1,12 +1,22 @@
-import { sendJson } from "../lib/api";
+import { sendResponse, formatError, CommonError } from "../lib/api";
 
 export function errorHandler(err, req, res, next) {
-  console.error("Central Error ::" + JSON.stringify(err, null, 2));
-
-  const { statusCode = 500 } = err || {};
-  const { analytics = {} } = err.meta || {};
-  // send for analytics
+    const { analytics = {} } = err.meta || {};
+  // logging for analytics
   console.log({ analytics });
+  
+  if (err instanceof ApplicationError) {
+    const code = err.statusCode || 500
+    return res.status(code).json(formatError(err))
+  }
 
-  return sendJson(res, err, statusCode);
+  if (err instanceof Error) {
+    const newError = createError(err)
+    const code = newError.statusCode || 500
+    return res.status(code).json(formatError(newError))
+  }
+  
+  const unknownError = new ApplicationError(CommonError.UNKNOWN_ERROR)
+
+  return sendResponse(res, unknownError, statusCode);
 }

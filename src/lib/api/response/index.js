@@ -28,7 +28,7 @@ export function formatResponse(result, override = {}) {
   }
 }
 
-export function sendJson(res, payload, statusCode = 200, context = {}) {
+export function sendResponse(res, payload, statusCode = 200, context = {}) {
   if (payload instanceof ApplicationError) {
     const code = payload.statusCode || 500
     return res.status(code).json(formatError(payload))
