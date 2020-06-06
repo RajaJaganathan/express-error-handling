@@ -1,12 +1,10 @@
 # Error Handling in express.js
 
-## way to handle errors in express.js
-
-Error handling is an important concept to understand for writing any better application. However often, I have seen error handling is misused or handled wrong way in the express.js application.
+Error handling is an important concept to understand for writing any better application. However often, I have seen error handling is misused or handled wrong way in many different application, especially in express.js application.
 
 In this article, we'll talk about a way to handle the error in a better and scalable way.
 
-Let’s build a user registration API with all functionality like validating user input, handling business validation, save the user's registration etc..,
+Let’s build an user registration API with all functionality like validating user input, handling business validation, save the user's registration etc..,
  
 ```javascript
 
@@ -16,7 +14,8 @@ app.post(
 );
 
 ```
-Here we'll take a look into 3 approaches such as novice, advanced and pro version of user's registration api.
+
+We will demonstrate 3 approaches such as novice, advanced and pro version of user's registration api.
 
 ## Novice approach
 
@@ -238,18 +237,18 @@ __Cons:__
 
 Just want to more emphasis on consistency, because consistency will lead a better, clean and understandable code. Also, which help us to refactor the code though code is messy.
 
-### Pro: Scalable Error handling
+## Pro: Scalable Error handling
 
 In pro version, we will take care of following things
 
 1. Validation with Schema library (Yup/Joi)
 2. Unified AppilcationError interface
-3. Custom Error Creation
+3. Custom Error creation
 4. Central error handling
 
-### Validation with Schema library (Yup/Joi)
+### Validation with Schema library
 
-I'd like introduce the schema based validation library like Yup/Joi. Let's define validation schema for our registration endpoint like below. 
+I'd like to introduce the schema based validation library such as [Yup](https://github.com/jquense/yup)/[Joi](https://github.com/hapijs/joi) . Let's define the validation schema for our registration endpoint like below. 
 
 Take a look at our _userRegistrationSchema_ function. See how elegantly we are validating against our javascript object without much code to write and also think about readablity perceptive, it has improved a lot and schema based validation is help us to reduce bug too!.
 
@@ -288,7 +287,7 @@ In other way, we may prefer to create our own custom error class which extends j
 class ResourceNotFound extend Error { }
 ```
 
-It's up to us to decide but I felt too many error classes which bring with some maintenance, enforce the consistency for error classes seems like it is unnecessary for javascript application. For example node.js errors itself categorized into few type of errors. 
+It's up to us to decide but I felt too many error classes which bring some maintenance, enforce the consistency for error classes seems like it is unnecessary for javascript application. For example, In node.js internally errors are categorized into few type of errors. 
 
 Let's define ApplicationError class
 
@@ -337,7 +336,7 @@ Great, now we have defined _ApplicationError_ but think a moment about Yup's Val
 
 How do we provide a consistent error interface ?
 
- Since we are handling the third party exceptions like Yup validation or MongoException, which has the different error schema will create a problem. We could solve this problem elegantly with the help of __factory function__. so that we can swap the Yup with Joi or something in later point even without knowing or altering too much in existing code.
+ Since we are handling the third party exceptions like Yup validation or MongoException, which has the different error schema that will create a problem. We could solve this problem elegantly with the help of __factory function__. so that we can swap the Yup with Joi or something in later point even without knowing or altering too much in existing code.
 
 Our Factory function name called _createError_ that will take care of converting third party exception or any error to ApplicationError exception. Here the errorFactory.js appears below
 
@@ -371,7 +370,7 @@ function mapYupValidationError(error) {
 }
 ```
 
-### Custom Errors
+### Custom Error Creation
 
 Return to our registration API, We might encounter the few business exceptions while developing the registration endpoint. Those few exceptions are 
 
@@ -379,7 +378,7 @@ Return to our registration API, We might encounter the few business exceptions w
 2. if user enters a weak password (__AUTH_WEAK_PASSWORD__)
 3. ...
 
-How do we create a custom exception with the help of ApplicationError ? 
+As said, we don't want to create new custom error class for each type of error. then how do we create a custom error with the help of ApplicationError ? 
 
 _controller/registration/error.js_
 
@@ -410,7 +409,7 @@ In later we could use like below
 new ApplicationError(RegistrationError.EMAIL_ALREADY_TAKEN);
 ```
 
-An important thing to note, these business validation errors are co-locating with our registration's controller is another good thing.
+one important thing to note, these business validation error.js are co-locating with our registration's controller is good thing.
 
 #### Bonus: Common Errors
 
@@ -531,9 +530,9 @@ As you can see here, validation.js and error.js are co-locating to registration 
 
 ### Central error handling
 
-Okay, it's time to talk about our centralized error handling technique in express.js application.
+It's time to reveal the core technique of this article that is centralized error handling in express.js application.
 
-> Define error-handling middleware functions in the same way as other middleware functions, except error-handling functions have four arguments instead of three: (err, req, res, next). 
+> Define error-handling middleware functions in the same way as other middleware functions, except error-handling functions have four arguments instead of three: __(err, req, res, next)__ 
 
 we should define an error-handling middleware last, after other app.use() and routes calls. 
 
@@ -547,11 +546,11 @@ __how it works__
 
 ![Alt Text](https://dev-to-uploads.s3.amazonaws.com/i/rr43hctw9ezrtm3cef01.jpeg)
 
-In general, if Error occur in synchronous code inside route handlers and middleware require no extra work. If synchronous code throws an error, then Express will catch and process it. 
+In general, if error occur in synchronous code inside route handlers and middleware require no extra work. If synchronous code throws an error, then Express will catch and process it. 
 
-The errors returned from asynchronous functions invoked by route handlers and middleware, you must pass them to the next() function, where Express will catch and process them.
+The errors returned from asynchronous functions invoked by route handlers and middleware, you must pass them to the __next(error)__ function, where Express will catch and process them.
 
-Like below we needs to throw the error or pass the error to express middleware
+Like below we need to throw the error or pass the error to express middleware
 
 _controller/registration.js_
 
@@ -625,71 +624,9 @@ Most importantly, we did not handling errors in every middleware, All error hand
 2. Send details for analytics
 3. Formatting the error for consist error schema
 
-Finally our route will looks like below
+Finally to test our registration endpoint using cURL command like below 
 
 ```javascript
-app.post(
-  "api/user/registration",
-  validateUserRegistration,
-  validationBusinessRule,
-  postRegistration
-);
-```
-
-That's it. Pretty neat right!!!
-
-
-## Validation Error
-
-```curl
-curl --location --request POST 'http://localhost:3000/api/user/registration' \
---header 'Content-Type: application/x-www-form-urlencoded' \
---data-urlencode 'first_name=raja' \
---data-urlencode 'last_name=jaganathan' \
---data-urlencode 'password=pwd12345' \
---data-urlencode 're_password=differentPassword' \
---data-urlencode 'email=test@gmail.com'
-```
-
-```json
-{
-    "error": {
-        "name": "ApplicationError",
-        "type": "APP_NAME",
-        "code": "VALIDATION_ERROR",
-        "message": "Passwords must match",
-        "errors": [
-            {
-                "name": "ValidationError",
-                "value": "differentPassword",
-                "path": "re_password",
-                "type": "oneOf",
-                "errors": [
-                    "Passwords must match"
-                ],
-                "inner": [],
-                "message": "Passwords must match",
-                "params": {
-                    "path": "re_password",
-                    "value": "differentPassword",
-                    "originalValue": "differentPassword",
-                    "values": ", Ref(password)"
-                }
-            }
-        ]
-    },
-    "success": false
-}
-```
-
-
-## Custom Error Scenario
-
-
-### AUTH_WEAK_PASSWORD
-
-
-```curl
 curl --location --request POST 'http://localhost:3000/api/user/registration' \
 --header 'Content-Type: application/x-www-form-urlencoded' \
 --data-urlencode 'first_name=raja' \
@@ -698,7 +635,6 @@ curl --location --request POST 'http://localhost:3000/api/user/registration' \
 --data-urlencode 're_password=qwerty1234' \
 --data-urlencode 'email=dummy@gmail.com' | python -mjson.tool
 ```
-
 ```json
 {
     "error": {
@@ -711,47 +647,15 @@ curl --location --request POST 'http://localhost:3000/api/user/registration' \
 }
 ```
 
-#### EMAIL_ALREADY_TAKEN
+That's it. Pretty neat right!!!
 
-```curl
-curl --location --request POST 'http://localhost:3000/api/user/registration' \
---header 'Content-Type: application/x-www-form-urlencoded' \
---data-urlencode 'first_name=raja' \
---data-urlencode 'last_name=jaganathan' \
---data-urlencode 'password=pwd12345' \
---data-urlencode 're_password=pwd12345' \
---data-urlencode 'email=dummy@gmail.com' | python -mjson.tool
-```
+You can find the repo here 💌https://github.com/RajaJaganathan/express-error-handling
 
-```json
-{
-    "error": {
-        "name": "ApplicationError",
-        "type": "APP_NAME",
-        "code": "EMAIL_ALREADY_TAKEN",
-        "message": "The given email address is already taken :("
-    },
-    "success": false
-}
-```
+_Other useful repo_
+[https://www.npmjs.com/package/http-errors](https://www.npmjs.com/package/http-errors)
+[https://www.npmjs.com/package/celebrate](https://www.npmjs.com/package/celebrate)
+[https://express-validator.github.io/docs/](https://express-validator.github.io/docs/)
+[https://github.com/aofleejay/express-response-formatter/](https://github.com/aofleejay/express-response-formatter/)
 
-### Success
+Thanks for reading!
 
-```curl
-curl --location --request POST 'http://localhost:3000/api/user/registration' \
---header 'Content-Type: application/x-www-form-urlencoded' \
---data-urlencode 'first_name=raja' \
---data-urlencode 'last_name=jaganathan' \
---data-urlencode 'password=pwd12345' \
---data-urlencode 're_password=pwd12345' \
---data-urlencode 'email=test@gmail.com'
-```
-
-```json
-{
-    "data": {
-        "message": "Registration is successful"
-    },
-    "success": true
-}
-```
